@@ -10,7 +10,7 @@ def get_exchange_rate():
     """Fetch USD to Toman rate from API"""
     try:
         # Option 1: Using a free API (example)
-        url = "https://api.navasan.tech/latest/?api_key=freeNkhYuE8MhPpRyQVZsHGJkqLDwe0z"
+        url = "https://apiv2.nobitex.ir/v3/orderbook/USDTIRT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
