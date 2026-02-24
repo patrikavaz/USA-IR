@@ -6,35 +6,27 @@ from datetime import datetime
 TELEGRAM_TOKEN = os.environ.get("TELEGRAM_TOKEN")
 CHAT_ID = os.environ.get("CHAT_ID")
 
-def get_exchange_rate():
-    """Fetch USD to Toman rate from API"""
+def get_usdt_price():
+    """Fetch USDT price from Nobitex API"""
     try:
-        # Option 1: Using a free API (example)
         url = "https://apiv2.nobitex.ir/v3/orderbook/USDTIRT"
         response = requests.get(url, timeout=10)
         data = response.json()
         
-        # Extract USD rate (in Rial, divide by 10 for Toman)
-        usd_rate = int(data['usd_sell']['value']) // 10
-        return usd_rate
-        
+        if data.get("status") == "ok":
+            # Get lastTradePrice (in Rial)
+            last_price_rial = int(data["lastTradePrice"])
+            
+            # Convert to Toman (divide by 10)
+            last_price_toman = last_price_rial // 10
+            
+            return last_price_toman
+        else:
+            print("API status not ok")
+            return None
+            
     except Exception as e:
         print(f"Error fetching rate: {e}")
-        return None
-
-def get_exchange_rate_alternative():
-    """Alternative: Using bonbast (unofficial)"""
-    try:
-        url = "https://bonbast.com/json"
-        headers = {"User-Agent": "Mozilla/5.0"}
-        response = requests.get(url, headers=headers, timeout=10)
-        data = response.json()
-        
-        usd_rate = int(data['usd1'])  # Already in Toman
-        return usd_rate
-        
-    except Exception as e:
-        print(f"Error: {e}")
         return None
 
 def send_telegram_message(message):
@@ -52,26 +44,31 @@ def send_telegram_message(message):
 
 def main():
     # Get current date/time
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
     
-    # Fetch exchange rate
-    rate = get_exchange_rate()
+    # Fetch USDT price
+    price = get_usdt_price()
     
-    if rate:
+    if price:
         message = f"""
-💵 <b>نرخ دلار به تومان</b>
+💵 <b>قیمت تتر (USDT)</b>
 
 📅 تاریخ: {now}
-💰 قیمت: {rate:,} تومان
+💰 قیمت: <b>{price:,}</b> تومان
 
+📊 منبع: نوبیتکس
 🔄 بروزرسانی هر ۲۴ ساعت
         """
     else:
-        message = f"⚠️ خطا در دریافت نرخ ارز\n📅 {now}"
+        message = f"⚠️ خطا در دریافت قیمت از نوبیتکس\n📅 {now}"
     
     # Send to Telegram
     result = send_telegram_message(message)
-    print(f"Message sent: {result}")
+    
+    if result.get("ok"):
+        print("✅ Message sent successfully!")
+    else:
+        print(f"❌ Failed to send: {result}")
 
 if __name__ == "__main__":
     main()
