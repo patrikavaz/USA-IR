@@ -20,14 +20,23 @@ def get_usdt_price():
             # Convert to Toman (divide by 10)
             last_price_toman = last_price_rial // 10
             
-            return last_price_toman
+            # Get lastUpdate (Unix timestamp in milliseconds)
+            last_update_ms = data["lastUpdate"]
+            
+            # Convert to seconds and then to datetime
+            last_update_dt = datetime.fromtimestamp(last_update_ms / 1000)
+            
+            # Format the date
+            last_update_str = last_update_dt.strftime("%Y-%m-%d %H:%M:%S")
+            
+            return last_price_toman, last_update_str
         else:
             print("API status not ok")
-            return None
+            return None, None
             
     except Exception as e:
         print(f"Error fetching rate: {e}")
-        return None
+        return None, None
 
 def send_telegram_message(message):
     """Send message to Telegram"""
@@ -43,23 +52,20 @@ def send_telegram_message(message):
     return response.json()
 
 def main():
-    # Get current date/time
-    now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+    # Fetch USDT price and last update time
+    price, last_update = get_usdt_price()
     
-    # Fetch USDT price
-    price = get_usdt_price()
-    
-    if price:
+    if price and last_update:
         message = f"""
 💵 <b>قیمت تتر (USDT)</b>
 
-📅 تاریخ: {now}
+📅 آخرین بروزرسانی: {last_update}
 💰 قیمت: <b>{price:,}</b> تومان
 
 📊 منبع: نوبیتکس
-🔄 بروزرسانی هر ۲۴ ساعت
         """
     else:
+        now = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
         message = f"⚠️ خطا در دریافت قیمت از نوبیتکس\n📅 {now}"
     
     # Send to Telegram
